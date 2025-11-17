@@ -3,7 +3,7 @@ from ultralytics import YOLO
 
 class ArrowModel:
     def __init__(self):
-        tensorrt_path = "models/arrow_best.engine"
+        tensorrt_path = "models/arrow_best.onnx"
 
         print("[ArrowModel] TensorRT 모델 사용")
         self.model = YOLO(tensorrt_path, task="detect")
@@ -21,6 +21,5 @@ class ArrowModel:
             max_det=1,
             imgsz=self.imgsz,
             agnostic_nms=True,
-            device=self.device,
             stream=False,
         )[0]

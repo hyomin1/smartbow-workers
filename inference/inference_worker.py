@@ -1,7 +1,6 @@
-import cv2
-import numpy as np
-import time
+import cv2, numpy as np, time
 from models.arrow_model import ArrowModel
+from models.target_model import TargetModel
 from utils.zmq_utils import get_sub_socket, get_pub_socket
 
 
@@ -25,7 +24,17 @@ class InferenceWorker:
         self.cam_id = cam_id
         self.sub_port = sub_port
         self.pub_port = pub_port
-        self.model = ArrowModel()
+
+        self.arrow_model = ArrowModel()
+        self.target_model = TargetModel()
+
+        self.TARGET_UPDATE_INTERVAL = 3600
+        self.last_target_update = 0
+
+        self.target = None
+
+        self.fps_count = 0
+        self.last_log = time.time()
 
     def start(self):
         print(
@@ -37,11 +46,13 @@ class InferenceWorker:
         sub = get_sub_socket(self.sub_port)
         pub = get_pub_socket(self.pub_port)
 
-        print(f"[InferenceWorker] {self.cam_id} model loaded")
+        print(f"[InferenceWorker] {self.cam_id} arrow_model loaded")
 
         while True:
             cam_id, jpeg = sub.recv_multipart()
             cam_id = cam_id.decode()
+
+            t0 = time.time()
 
             frame = cv2.imdecode(np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
 
@@ -49,18 +60,49 @@ class InferenceWorker:
                 print("[WARN] JPEG decode 실패")
                 continue
 
-            # YOLO inference
-            result = self.model.predict(frame)
+            result = self.arrow_model.predict(frame)
 
             bbox, tip, conf = get_bbox_and_tip(result)
+            now = time.time()
 
+            h, w = frame.shape[:2]
+
+            if (
+                self.target is None
+                or now - self.last_target_update > self.TARGET_UPDATE_INTERVAL
+            ):
+                self.last_target_update = now
+                self.target = self.target_model.predict(frame)
+            infer_ms = (time.time() - t0) * 1000
+            self.fps_count += 1
+
+            if now - self.last_log >= 1.0:
+                print(f"[{self.cam_id}] FPS={self.fps_count} infer={infer_ms:.1f}ms")
+                self.fps_count = 0
+                self.last_log = now
+            if bbox is None:
+                event = {
+                    "type": "arrow",
+                    "cam_id": cam_id,
+                    "bbox": None,
+                    "tip": None,
+                    "conf": 0.0,
+                    "target": self.target,
+                    "frame_size": [w, h],
+                    "timestamp": time.time(),
+                }
+                pub.send_json(event)
+                continue
             event = {
                 "type": "arrow",
                 "cam_id": cam_id,
                 "bbox": bbox,
                 "tip": tip,
                 "conf": conf if conf else 0.0,
+                "target": self.target,
+                "frame_size": [w, h],
                 "timestamp": time.time(),
             }
+            print("화살", event["tip"])
 
             pub.send_json(event)

@@ -1,0 +1,17 @@
+from ultralytics import YOLO
+
+model = YOLO("arrow_best.pt")
+
+print("변환 시작... 5~10분 걸립니다")
+
+model.export(
+    format="engine",
+    opset=18,
+    dynamic=False,
+    simplify=True,
+    half=True,
+    device=0,
+    workspace=2048,
+)
+
+print("완료!")
