@@ -16,24 +16,24 @@ CAMERA_CONFIG = {
     #     "raw_port": int(os.getenv("TARGET2_PORT")),
     #     "crop": None,
     # },
-    # "target3": {
-    #     "id": os.getenv("TARGET3_ID"),
-    #     "source": os.getenv("TARGET3_SOURCE"),
-    #     "raw_port": int(os.getenv("TARGET3_PORT")),
+    "target3": {
+        "id": os.getenv("TARGET3_ID"),
+        "source": os.getenv("TARGET3_SOURCE"),
+        "raw_port": int(os.getenv("TARGET3_PORT")),
+        "crop": {"left": 550, "right": 250, "top": 0, "bottom": 200},
+    },
+    # "target-test": {
+    #     "id": os.getenv("TARGET_ID"),
+    #     "source": os.getenv("TARGET_SOURCE"),
+    #     "raw_port": int(os.getenv("TARGET_PORT")),
     #     "crop": {"left": 500, "right": 250, "top": 0, "bottom": 150},
     # },
-    "target-test": {
-        "id": os.getenv("TARGET_ID"),
-        "source": os.getenv("TARGET_SOURCE"),
-        "raw_port": int(os.getenv("TARGET_PORT")),
-        "crop": {"left": 500, "right": 250, "top": 0, "bottom": 150},
+    "shooter1": {
+        "id": os.getenv("SHOOTER1_ID"),
+        "source": os.getenv("SHOOTER1_URL"),
+        "raw_port": int(os.getenv("SHOOTER1_PORT")),
+        "crop": None,
     },
-    # "shooter1": {
-    #     "id": os.getenv("SHOOTER1_ID"),
-    #     "source": os.getenv("SHOOTER1_URL"),
-    #     "raw_port": int(os.getenv("SHOOTER1_PORT")),
-    #     "crop": None,
-    # },
     # "shooter2": {
     #     "id": os.getenv("SHOOTER2_ID"),
     #     "source": os.getenv("SHOOTER2_URL"),
@@ -53,16 +53,16 @@ INFER_CONFIG = {
     #     "infer_port": int(os.getenv("TARGET2_INFER_PORT")),
     #     "raw_port": int(os.getenv("TARGET2_PORT")),
     # },
-    # "target3": {
-    #     "id": os.getenv("TARGET3_ID"),
-    #     "infer_port": int(os.getenv("TARGET3_INFER_PORT")),
-    #     "raw_port": int(os.getenv("TARGET3_PORT")),
-    # },
-    "target-test": {
-        "id": os.getenv("TARGET_ID"),
-        "infer_port": int(os.getenv("TARGET_INFER_PORT")),
-        "raw_port": int(os.getenv("TARGET_PORT")),
+    "target3": {
+        "id": os.getenv("TARGET3_ID"),
+        "infer_port": int(os.getenv("TARGET3_INFER_PORT")),
+        "raw_port": int(os.getenv("TARGET3_PORT")),
     },
+    # "target-test": {
+    #     "id": os.getenv("TARGET_ID"),
+    #     "infer_port": int(os.getenv("TARGET_INFER_PORT")),
+    #     "raw_port": int(os.getenv("TARGET_PORT")),
+    # },
     # "shooter1": {
     #     "id": os.getenv("SHOOTER1_ID"),
     #     "infer_port": int(os.getenv("SHOOTER1_INFER_PORT")),
