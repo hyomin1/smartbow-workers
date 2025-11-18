@@ -1,4 +1,5 @@
-import cv2, time
+import cv2
+import time
 from utils.zmq_utils import get_pub_socket
 
 
@@ -24,29 +25,34 @@ class CameraWorker:
     def start(self):
         pub = get_pub_socket(self.pub_port)
 
-        cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
-
-        if not cap.isOpened():
-            print(f"[{self.cam_id}] 카메라 연결 실패")
-            return
-        print(f"[{self.cam_id}] Camera Worker 시작…")
-
         while True:
-            ok, frame = cap.read()
-            if not ok:
-                print(f"[{self.cam_id}] 프레임 읽기 실패… 재시도")
-                time.sleep(0.01)
+            cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
+
+            if not cap.isOpened():
+                print(f"[{self.cam_id}] 카메라 연결 실패 → 3초 후 재시도")
+                time.sleep(3)
                 continue
 
-            frame = self.crop_frame(frame)
+            print(f"[{self.cam_id}] Camera Worker 시작…")
 
-            ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 65])
-            if not ok:
-                continue
+            while True:
+                ok, frame = cap.read()
 
-            pub.send_multipart(
-                [
-                    self.cam_id.encode(),
-                    buffer.tobytes(),
-                ]
-            )
+                if not ok or frame is None:
+                    print(f"[{self.cam_id}] 프레임 읽기 실패 → 카메라 재연결 시도")
+                    cap.release()
+                    time.sleep(1)
+                    break
+
+                frame = self.crop_frame(frame)
+
+                ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                if not ok:
+                    continue
+
+                pub.send_multipart(
+                    [
+                        self.cam_id.encode(),
+                        buffer.tobytes(),
+                    ]
+                )
