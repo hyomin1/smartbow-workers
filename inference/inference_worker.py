@@ -1,4 +1,4 @@
-import cv2, numpy as np, time
+import cv2, numpy as np, time, msgpack
 from models.arrow_model import ArrowModel
 from models.target_model import TargetModel
 from utils.zmq_utils import get_sub_socket, get_pub_socket
@@ -49,8 +49,12 @@ class InferenceWorker:
         print(f"[InferenceWorker] {self.cam_id} arrow_model loaded")
 
         while True:
-            cam_id, jpeg = sub.recv_multipart()
-            cam_id = cam_id.decode()
+
+            data = sub.recv()
+            msg = msgpack.unpackb(data, raw=False)
+
+            cam_id = msg["cam_id"]
+            jpeg = msg["jpeg"]
 
             t0 = time.time()
 

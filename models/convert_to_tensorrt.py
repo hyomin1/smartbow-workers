@@ -9,9 +9,9 @@ model.export(
     opset=18,
     dynamic=False,
     simplify=True,
-    half=True,
+    half=False,
     device=0,
-    workspace=2048,
+    workspace=4,
 )
 
 print("완료!")

@@ -1,5 +1,5 @@
-import cv2
-import time
+import cv2, time, msgpack
+
 from utils.zmq_utils import get_pub_socket
 
 
@@ -50,9 +50,6 @@ class CameraWorker:
                 if not ok:
                     continue
 
-                pub.send_multipart(
-                    [
-                        self.cam_id.encode(),
-                        buffer.tobytes(),
-                    ]
-                )
+                data = msgpack.packb({"cam_id": self.cam_id, "jpeg": buffer.tobytes()})
+
+                pub.send(data)
