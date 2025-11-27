@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-model = YOLO("arrow_best.pt")
+model = YOLO("person_best.pt")
 
 print("변환 시작... 5~10분 걸립니다")
 

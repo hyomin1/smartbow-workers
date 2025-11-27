@@ -28,21 +28,27 @@ CAMERA_CONFIG = {
         "raw_port": int(os.getenv("TARGET_PORT")),
         "crop": {"left": 500, "right": 250, "top": 0, "bottom": 150},
     },
-    "shooter1": {
-        "id": os.getenv("SHOOTER1_ID"),
-        "source": os.getenv("SHOOTER1_URL"),
-        "raw_port": int(os.getenv("SHOOTER1_PORT")),
+    "shooter-test": {
+        "id": os.getenv("SHOOTER_ID"),
+        "source": os.getenv("SHOOTER_SOURCE"),
+        "raw_port": int(os.getenv("SHOOTER_PORT")),
         "crop": None,
     },
+    # "shooter1": {
+    #     "id": os.getenv("SHOOTER1_ID"),
+    #     "source": os.getenv("SHOOTER1_SOURCE"),
+    #     "raw_port": int(os.getenv("SHOOTER1_PORT")),
+    #     "crop": None,
+    # },
     # "shooter2": {
     #     "id": os.getenv("SHOOTER2_ID"),
-    #     "source": os.getenv("SHOOTER2_URL"),
+    #     "source": os.getenv("SHOOTER2_SOURCE"),
     #     "raw_port": int(os.getenv("SHOOTER2_PORT")),
     #     "crop": None,
     # },
 }
 
-INFER_CONFIG = {
+INFER_ARROW_CONFIG = {
     # "target1": {
     #     "id": os.getenv("TARGET1_ID"),
     #     "infer_port": int(os.getenv("TARGET1_INFER_PORT")),
@@ -62,6 +68,13 @@ INFER_CONFIG = {
         "id": os.getenv("TARGET_ID"),
         "infer_port": int(os.getenv("TARGET_INFER_PORT")),
         "raw_port": int(os.getenv("TARGET_PORT")),
+    },
+}
+INFER_PERSON_CONFIG = {
+    "shooter-test": {
+        "id": os.getenv("SHOOTER_ID"),
+        "infer_port": int(os.getenv("SHOOTER_INFER_PORT")),
+        "raw_port": int(os.getenv("SHOOTER_PORT")),
     },
     # "shooter1": {
     #     "id": os.getenv("SHOOTER1_ID"),

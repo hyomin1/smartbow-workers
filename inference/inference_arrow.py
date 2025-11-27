@@ -19,7 +19,7 @@ def get_bbox_and_tip(result):
     return xyxy, tip, conf
 
 
-class InferenceWorker:
+class InferenceArrow:
     def __init__(self, cam_id: str, sub_port: int, pub_port: int):
         self.cam_id = cam_id
         self.sub_port = sub_port
@@ -81,7 +81,7 @@ class InferenceWorker:
             self.fps_count += 1
 
             if now - self.last_log >= 1.0:
-                print(f"[{self.cam_id}] FPS={self.fps_count} infer={infer_ms:.1f}ms")
+                # print(f"[{self.cam_id}] FPS={self.fps_count} infer={infer_ms:.1f}ms")
                 self.fps_count = 0
                 self.last_log = now
             if bbox is None:
