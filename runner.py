@@ -52,10 +52,10 @@ def main():
         p.start()
         processes.append(p)
 
-    # for cam_key in INFER_PERSON_CONFIG.keys():
-    #     p = Process(target=start_inference_person_worker, args=(cam_key,))
-    #     p.start()
-    #     processes.append(p)
+    for cam_key in INFER_PERSON_CONFIG.keys():
+        p = Process(target=start_inference_person_worker, args=(cam_key,))
+        p.start()
+        processes.append(p)
 
     for p in processes:
         p.join()

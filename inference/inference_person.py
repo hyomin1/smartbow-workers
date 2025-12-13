@@ -73,32 +73,29 @@ class InferencePerson:
                     continue
                 result = self.person_model.predict(frame)[0]
 
-                detections = []
+                persons = []
                 for box in result.boxes:
                     try:
                         cls = int(box.cls[0])
                         conf = float(box.conf[0])
-                        class_name = result.names[cls]
+                        state = result.names[cls]
 
-                        if class_name == "drawing":
+                        if state in ("drawing", "idle") and conf >= 0.6:
                             bbox = box.xyxy.cpu().numpy()[0].tolist()
-                            detections.append({"bbox": bbox, "conf": conf})
+                            persons.append({"state": state, "bbox": bbox, "conf": conf})
 
                     except Exception as e:
                         print(f"[{self.cam_id}] Box 파싱 실패: {e}")
                         continue
-                if detections:
-                    best_detection = max(detections, key=lambda d: d["conf"])
-
-                    event = {
-                        "type": "drawing",
-                        "cam_id": cam_id,
-                        "bbox": best_detection["bbox"],
-                        "conf": best_detection["conf"],
-                        "timestamp": time.time(),
-                    }
-
-                    pub.send_json(event)
+                if persons:
+                    pub.send_json(
+                        {
+                            "type": "persons",
+                            "cam_id": cam_id,
+                            "persons": persons,
+                            "timestamp": time.time(),
+                        }
+                    )
 
             except msgpack.exceptions.UnpackException as e:
                 consecutive_errors += 1
