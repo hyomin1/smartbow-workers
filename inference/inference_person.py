@@ -1,25 +1,46 @@
-from models.person_model import PersonModel
+from weights.person_model import PersonModel
 from utils.zmq_utils import get_sub_socket, get_pub_socket
+from inference.face_cache import FaceEmbeddingCache
+from inference.face_recognizer import FaceRecognizer
+from inference.face_encoder import FaceEncoder
 
 import msgpack, cv2, numpy as np, time
 
 
 class InferencePerson:
 
-    def __init__(self, cam_id: str, sub_port: int, pub_port: int):
+    def __init__(self, cam_id: str, sub_port: int, pub_port: int, gate_port: int):
 
         self.person_model = PersonModel()
         self.sub_port = sub_port
         self.pub_port = pub_port
+        self.gate_port = gate_port
         self.cam_id = cam_id
 
         self.fps_count = 0
         self.last_log = time.time()
 
+        self.face_cache = FaceEmbeddingCache()
+        self.recognizer = None
+        self.face_encoder = FaceEncoder()
+
+        self.last_gate_send_ts = 0.0
+        self.GATE_INTERVAL = 0.5
+
     def start(self):
+        self.face_cache.load()
+        self.recognizer = FaceRecognizer(self.face_cache)
+
 
         retry_count = 0
         MAX_RETRIES = 3
+
+        
+
+        print(
+            f"[InferencePerson] cam_id={self.cam_id} "
+            f"face_users={len(self.face_cache.cache)}"
+        )
 
         while retry_count < MAX_RETRIES:
             try:
@@ -40,6 +61,7 @@ class InferencePerson:
         try:
             sub = get_sub_socket(self.sub_port)
             pub = get_pub_socket(self.pub_port)
+            gate_pub = get_pub_socket(self.gate_port)
         except Exception as e:
             print(f"[{self.cam_id}] ZMQ 연결 실패: {e}")
             raise
@@ -80,9 +102,37 @@ class InferencePerson:
                         conf = float(box.conf[0])
                         state = result.names[cls]
 
-                        if state in ("drawing", "idle") and conf >= 0.6:
+                        if state in ("drawing") and conf >= 0.7:
                             bbox = box.xyxy.cpu().numpy()[0].tolist()
                             persons.append({"state": state, "bbox": bbox, "conf": conf})
+
+                            now = time.time()
+
+                            if now - self.last_gate_send_ts > self.GATE_INTERVAL:
+                                gate_pub.send_json({
+                                    "type": "person_gate",
+                                    "cam_id": self.cam_id,
+                                    "active": True,
+                                    "timestamp":now,
+                                })
+                                self.last_gate_send_ts = now
+                            #persons.append({"state": state, "bbox": bbox, "conf": conf, "user_id":user_id, "face_score":face_score})
+                            # x1, y1, x2, y2 = map(int, bbox)
+                            
+                            # person_crop = frame[y1:y2, x1:x2]
+                            # user_id = 'unknown',
+                            # face_score = 0.0
+
+                            # try:
+                            #     face_emb = self.face_encoder.encode(person_crop)
+                            #     user_id, face_score = self.recognizer.recognize(face_emb)
+                                
+                            #     print(f"[FaceTest] cam={cam_id} user={user_id} score={face_score:.3f}")
+                            # except Exception as e:
+                            #     pass
+
+
+                            # persons.append({"state": state, "bbox": bbox, "conf": conf, "user_id":user_id, "face_score":face_score})
 
                     except Exception as e:
                         print(f"[{self.cam_id}] Box 파싱 실패: {e}")

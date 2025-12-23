@@ -1,4 +1,4 @@
-import cv2, time, msgpack
+import cv2, time, msgpack, numpy as np
 
 from utils.zmq_utils import get_pub_socket
 
@@ -9,6 +9,36 @@ class CameraWorker:
         self.source = source
         self.pub_port = pub_port
         self.crop = crop
+
+        self.prev_frame = None
+    
+    def draw_motion_line(self,frame):
+        if self.prev_frame is None:
+            self.prev_frame = frame
+            return frame
+        
+        diff = cv2.absdiff(self.prev_frame, frame)
+        gray = cv2.cvtColor(diff,cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray,30,255,cv2.THRESH_BINARY)
+
+        lines = cv2.HoughLinesP(
+            binary,
+            rho=1,
+            theta=np.pi / 180,
+            threshold=40,
+            minLineLength=40,
+            maxLineGap=10
+        )
+        vis = frame.copy()
+
+        if lines is not None:
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(vis, (x1,y1), (x2,y2), (0,0,255), 2)
+        self.prev_frame = frame
+        return vis
+
+
 
     def crop_frame(self, frame):
         if not self.crop:
@@ -45,11 +75,13 @@ class CameraWorker:
                     break
 
                 frame = self.crop_frame(frame)
+                if self.cam_id == 'target3':
+                    frame = self.draw_motion_line(frame)
 
                 ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 65])
                 if not ok:
                     continue
 
-                data = msgpack.packb({"cam_id": self.cam_id, "jpeg": buffer.tobytes()})
+                data = msgpack.packb({"type":"frame","cam_id": self.cam_id, "jpeg": buffer.tobytes()})
 
                 pub.send(data)

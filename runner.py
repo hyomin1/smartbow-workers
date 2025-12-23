@@ -5,6 +5,8 @@ from inference.inference_arrow import InferenceArrow
 from inference.inference_person import InferencePerson
 
 
+
+
 def start_camera_worker(cam_key):
     camera = CAMERA_CONFIG[cam_key]
 
@@ -24,6 +26,7 @@ def start_inference_worker(cam_key):
         cam_id=camera["id"],
         sub_port=camera["raw_port"],
         pub_port=camera["infer_port"],
+        gate_port=camera['gate_port'],
     )
     worker.start()
 
@@ -35,6 +38,7 @@ def start_inference_person_worker(cam_key):
         cam_id=camera["id"],
         sub_port=camera["raw_port"],
         pub_port=camera["infer_port"],
+        gate_port=camera['gate_port'],
     )
     worker.start()
 
