@@ -5,8 +5,6 @@ from inference.inference_arrow import InferenceArrow
 from inference.inference_person import InferencePerson
 
 
-
-
 def start_camera_worker(cam_key):
     camera = CAMERA_CONFIG[cam_key]
 

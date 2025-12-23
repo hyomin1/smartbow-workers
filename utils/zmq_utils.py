@@ -1,7 +1,7 @@
 import zmq, time
 
 
-def get_pub_socket(port: int):
+def get_pub_socket(ipc_name: str):
     ctx = zmq.Context.instance()
     socket = ctx.socket(zmq.PUB)
 
@@ -9,12 +9,12 @@ def get_pub_socket(port: int):
     socket.setsockopt(zmq.SNDHWM, 2)
     socket.setsockopt(zmq.CONFLATE, 1)
 
-    socket.bind(f"tcp://*:{port}")
+    socket.bind(f"ipc:///tmp/{ipc_name}.ipc")
     time.sleep(0.5)
     return socket
 
 
-def get_sub_socket(port: int):
+def get_sub_socket(ipc_name: str):
     ctx = zmq.Context.instance()
     socket = ctx.socket(zmq.SUB)
 
@@ -26,6 +26,6 @@ def get_sub_socket(port: int):
     socket.setsockopt(zmq.TCP_KEEPALIVE, 1)
     socket.setsockopt(zmq.TCP_KEEPALIVE_IDLE, 300)
     socket.setsockopt(zmq.TCP_KEEPALIVE_INTVL, 300)
-    socket.connect(f"tcp://127.0.0.1:{port}")
+    socket.connect(f"ipc:///tmp/{ipc_name}.ipc")
 
     return socket
