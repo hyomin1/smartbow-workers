@@ -1,8 +1,20 @@
-from config import CAMERA_CONFIG, INFER_ARROW_CONFIG, INFER_PERSON_CONFIG
-from camera.camera_worker import CameraWorker
+import glob
+import os
 from multiprocessing import Process
+
+from camera.camera_worker import CameraWorker
+from config import CAMERA_CONFIG, INFER_ARROW_CONFIG, INFER_PERSON_CONFIG
 from inference.inference_arrow import InferenceArrow
 from inference.inference_person import InferencePerson
+
+
+def cleanup_ipc_files():
+    ipc_files = glob.glob("/tmp/*.ipc")
+    for file in ipc_files:
+        try:
+            os.remove(file)
+        except Exception as e:
+            print(f"Error deleting file {file}: {e}")
 
 
 def start_camera_worker(cam_key):
@@ -11,8 +23,8 @@ def start_camera_worker(cam_key):
     worker = CameraWorker(
         cam_id=camera["id"],
         source=camera["source"],
-        pub_port=camera["raw_port"],
         crop=camera["crop"],
+        shape=camera["shape"],
     )
     worker.start()
 
@@ -22,9 +34,9 @@ def start_inference_worker(cam_key):
 
     worker = InferenceArrow(
         cam_id=camera["id"],
-        sub_port=camera["raw_port"],
         pub_port=camera["infer_port"],
-        gate_port=camera['gate_port'],
+        gate_port=camera["gate_port"],
+        shape=camera["shape"],
     )
     worker.start()
 
@@ -34,14 +46,15 @@ def start_inference_person_worker(cam_key):
 
     worker = InferencePerson(
         cam_id=camera["id"],
-        sub_port=camera["raw_port"],
         pub_port=camera["infer_port"],
-        gate_port=camera['gate_port'],
+        gate_port=camera["gate_port"],
+        shape=camera["shape"],
     )
     worker.start()
 
 
 def main():
+    cleanup_ipc_files()
     processes = []
 
     for cam_key in CAMERA_CONFIG.keys():
