@@ -9,3 +9,5 @@ __pycache__
 *.pt
 
 weights/
+
+debug_data/

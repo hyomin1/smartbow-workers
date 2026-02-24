@@ -6,7 +6,7 @@ class FaceEncoder:
     def __init__(self):
         self.app = FaceAnalysis(
             name="buffalo_l",
-            providers=['CUDAExecutionProvider', "CPUExecutionProvider"],
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
         )
         self.app.prepare(ctx_id=0, det_size=(640, 640))
 
@@ -14,7 +14,7 @@ class FaceEncoder:
         faces = self.app.get(img)
 
         if not faces:
-            raise ValueError("face not detected")
+            return None
 
         face = max(
             faces,

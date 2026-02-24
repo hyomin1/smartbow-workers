@@ -6,10 +6,12 @@ from inference.face_recognizer import FaceRecognizer
 from utils.frame_shm import FrameBuffer
 from utils.zmq_utils import get_pub_socket
 from weights.person_model import PersonModel
+from workers.base import BaseWorker
 
 
-class InferencePerson:
+class InferencePerson(BaseWorker):
     def __init__(self, cam_id: str, pub_port: str, gate_port: str, shape):
+        super().__init__(f"InferencePerson-{cam_id}")
         self.person_model = PersonModel()
         self.pub_port = pub_port
         self.gate_port = gate_port
@@ -28,6 +30,16 @@ class InferencePerson:
         self.last_gate_send_ts = 0.0
         self.GATE_INTERVAL = 0.5
 
+        self.person_roi = (
+            0,
+            320,
+            800,
+            820,
+        )  # 해당 영역만 추론하기 위함 (3관 전용 추후 확장)
+
+        self.last_infer_ts = 0.0
+        self.INFER_INTERVAL = 0.2
+
     def start(self):
         self.face_cache.load()
         self.recognizer = FaceRecognizer(self.face_cache)
@@ -40,7 +52,7 @@ class InferencePerson:
             f"face_users={len(self.face_cache.cache)}"
         )
 
-        while retry_count < MAX_RETRIES:
+        while self.running and retry_count < MAX_RETRIES:
             try:
                 self.run()
             except Exception as e:
@@ -67,48 +79,60 @@ class InferencePerson:
         consecutive_errors = 0
         MAX_CONSECUTIVE_ERRORS = 10
 
-        while True:
+        while self.running:
             try:
                 frame = self.frame_buffer.read()
+                if frame is None:
+                    time.sleep(0.01)
+                    continue
 
-                person = self.person_model.predict(frame)
-                if person is not None:
-                    now = time.time()
-                    if now - self.last_gate_send_ts > self.GATE_INTERVAL:
-                        gate_pub.send_json(
-                            {
-                                "type": "person_gate",
-                                "cam_id": self.cam_id,
-                                "active": True,
-                                "timestamp": now,
-                            }
-                        )
-                        self.last_gate_send_ts = now
-                        pub.send_json(
-                            {
-                                "type": "person",
-                                "cam_id": self.cam_id,
-                                "person": person,
-                                "timestamp": time.time(),
-                            }
-                        )
+                now = time.time()
+                if now - self.last_infer_ts < self.INFER_INTERVAL:
+                    time.sleep(0.005)
+                    continue
+                self.last_infer_ts = time.time()
 
-                        # persons.append({"state": state, "bbox": bbox, "conf": conf, "user_id":user_id, "face_score":face_score})
-                        # x1, y1, x2, y2 = map(int, bbox)
+                x1, y1, x2, y2 = self.person_roi
+                roi_frame = frame[y1:y2, x1:x2]
 
-                        # person_crop = frame[y1:y2, x1:x2]
-                        # user_id = 'unknown',
-                        # face_score = 0.0
+                person = self.person_model.predict(roi_frame)
+                if not person:
+                    continue
 
-                        # try:
-                        #     face_emb = self.face_encoder.encode(person_crop)
-                        #     user_id, face_score = self.recognizer.recognize(face_emb)
+                bx1, by1, bx2, by2 = map(int, person["bbox"])
+                bx1 += x1
+                bx2 += x1
+                by1 += y1
+                by2 += y1
 
-                        #     print(f"[FaceTest] cam={cam_id} user={user_id} score={face_score:.3f}")
-                        # except Exception as e:
-                        #     pass
+                person["bbox"] = [bx1, by1, bx2, by2]
+                person_crop = frame[by1:by2, bx1:bx2]
+                face_emb = self.face_encoder.encode(person_crop)
 
-                        # persons.append({"state": state, "bbox": bbox, "conf": conf, "user_id":user_id, "face_score":face_score})
+                user_id = None
+                if face_emb is not None and self.recognizer:
+                    user_id, _ = self.recognizer.recognize(face_emb)
+                person["user_id"] = user_id
+
+                ts = time.time()
+                if ts - self.last_gate_send_ts > self.GATE_INTERVAL:
+                    self.last_gate_send_ts = ts
+                    gate_pub.send_json(
+                        {
+                            "type": "person_gate",
+                            "cam_id": self.cam_id,
+                            "active": True,
+                            "timestamp": ts,
+                        }
+                    )
+                pub.send_json(
+                    {
+                        "type": "person",
+                        "cam_id": self.cam_id,
+                        "person": person,
+                        "timestamp": ts,
+                    }
+                )
 
             except KeyboardInterrupt:
                 print(f"[{self.cam_id}] 사용자 중단")

@@ -1,4 +1,6 @@
-import zmq, time
+import time
+
+import zmq
 
 
 def get_pub_socket(ipc_name: str):
@@ -27,5 +29,15 @@ def get_sub_socket(ipc_name: str):
     socket.setsockopt(zmq.TCP_KEEPALIVE_IDLE, 300)
     socket.setsockopt(zmq.TCP_KEEPALIVE_INTVL, 300)
     socket.connect(f"ipc:///tmp/{ipc_name}.ipc")
+
+    return socket
+
+
+def get_rep_socket(ipc_name: str):
+    ctx = zmq.Context.instance()
+    socket = ctx.socket(zmq.REP)
+
+    socket.setsockopt(zmq.LINGER, 0)
+    socket.bind(f"ipc:///tmp/{ipc_name}.ipc")
 
     return socket
